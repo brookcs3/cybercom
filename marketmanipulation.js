@@ -1,10 +1,10 @@
 (function(){
-  // Helper function to try and get the Flot plot instance.
+  // Helper function to retrieve the Flot plot instance.
   function getPlot() {
     if (window.plot && typeof window.plot.getData === 'function') {
       return window.plot;
     }
-    // Try to retrieve the plot stored in the placeholder's data.
+    // Alternatively, try to retrieve the plot stored in the placeholder's data.
     var p = $("#placeholder").data("plot");
     if (p && typeof p.getData === 'function') {
       return p;
@@ -12,7 +12,7 @@
     return null;
   }
   
-  // POLLING FUNCTION: Wait until a Flot plot is available.
+  // Poll until a Flot plot is available.
   function waitForPlot() {
     var plotInstance = getPlot();
     if (plotInstance) {
@@ -20,21 +20,19 @@
       startForcedTakeover();
     } else {
       console.log("Plot not found, waiting...");
-      setTimeout(waitForPlot, 500);  // Check again after 500ms.
+      setTimeout(waitForPlot, 500);
     }
   }
   
-  // FORCED TAKEOVER LOGIC
+  // Forced takeover logic.
   function startForcedTakeover() {
     // --- CONFIGURATION PARAMETERS ---
-    var baseForcedDelta = 0.5;     // Base forced price change (in data units)
-    var updateInterval = 250;      // Interval (in ms) to check for new data.
+    var baseForcedDelta = 1.5;     // The base magnitude of the forced delta (in data units)
+    var updateInterval = 250;      // Update interval in milliseconds.
     
-    // currentForcedDelta is our working delta.
+    // currentForcedDelta is our working delta value.
+    // (Starts positive.)
     var currentForcedDelta = baseForcedDelta;
-    // Store the last detected trend over a 5-point window.
-    // It can be "up", "down", or "flat".
-    var lastTrend = null;
     
     // Retrieve the "Last Trade" series from the plot.
     function getLastTradeSeries() {
@@ -56,7 +54,7 @@
     // Use the series length as a marker for new real data.
     var lastRealDataCount = lastTradeSeries.data.length;
     
-    // Wrap the global onNewData callback (if it exists) so that real data resets our marker.
+    // Optionally wrap the global onNewData callback so that real data updates our marker.
     var origOnNewData = window.onNewData;
     window.onNewData = function(newPoint) {
       var series = getLastTradeSeries();
@@ -68,49 +66,43 @@
       }
     };
     
-    // Set up an interval that every updateInterval ms checks for new real data.
+    // Set up an interval to check for new data and inject an artificial point if needed.
     setInterval(function(){
       var series = getLastTradeSeries();
       if (!series) return;
       
-      // If no new real data has been added, we add an artificial point.
+      // Only inject an artificial point if no new real data was added.
       if (series.data.length === lastRealDataCount) {
         var lastPoint = series.data[series.data.length - 1];
         
-        // --- Examine the trend over the last 5 data points ---
+        // If we have at least 5 data points, examine the last 5.
         if (series.data.length >= 5) {
           var recentPoints = series.data.slice(-5);
           var firstY = recentPoints[0][1];
           var lastY = recentPoints[recentPoints.length - 1][1];
-          var currentTrend;
-          if (lastY > firstY) {
-            currentTrend = "up";
-          } else if (lastY < firstY) {
-            currentTrend = "down";
-          } else {
-            currentTrend = "flat";
-          }
           
-          // If we have a previous trend and it differs from the current trend, flip the forced delta.
-          if (lastTrend !== null && currentTrend !== lastTrend) {
+          if (lastY > firstY) {
+            // The last 5 points show an upward movement.
+            currentForcedDelta = Math.abs(baseForcedDelta);
+            console.log("Last 5 points going up. Forced delta set to positive:", currentForcedDelta);
+          } else {
+            // The last 5 points are not going up (flat or down) — flip the forced delta.
             currentForcedDelta = -currentForcedDelta;
-            console.log("Trend changed from " + lastTrend + " to " + currentTrend + ". Flipping forced delta to " + currentForcedDelta);
+            console.log("Last 5 points not going up. Flipping forced delta to:", currentForcedDelta);
           }
-          // Update the lastTrend value.
-          lastTrend = currentTrend;
         }
         
         // Create a new artificial point.
-        var newX = lastPoint[0] + updateInterval;
+        var newX = lastPoint[0] + updateInterval;  // Advance x by the update interval.
         var newY = lastPoint[1] + currentForcedDelta;
         series.data.push([newX, newY]);
         
-        // Optionally trim the series if it grows too long (keeping, say, the last 100 points).
+        // Optionally, trim the series if it grows too long (e.g., keep only the last 100 points).
         if (series.data.length > 100) {
           series.data = series.data.slice(-100);
         }
         
-        // Force a redraw of the chart.
+        // Redraw the chart.
         var plotInstance = getPlot();
         if (plotInstance) {
           plotInstance.setupGrid();
@@ -119,14 +111,14 @@
         
         console.log("Artificial forced point added at:", newX, newY);
       } else {
-        // New real data arrived—update our marker.
+        // New real data has arrived—update our marker.
         lastRealDataCount = series.data.length;
       }
     }, updateInterval);
     
-    console.log("Forced takeover script activated. The 'Last Trade' series will flip the forced delta anytime the trend changes.");
+    console.log("Forced takeover script activated. If the last 5 points are not rising, the forced delta will be switched.");
   }
   
-  // Begin searching for the plot.
+  // Start searching for the plot.
   waitForPlot();
 })();
