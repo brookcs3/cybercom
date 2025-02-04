@@ -27,11 +27,10 @@
   // Forced takeover logic.
   function startForcedTakeover() {
     // --- CONFIGURATION PARAMETERS ---
-    var baseForcedDelta = 1.5;     // The base magnitude of the forced delta (in data units)
+    var baseForcedDelta = 0.5;     // The base magnitude of the forced delta (in data units)
     var updateInterval = 250;      // Update interval in milliseconds.
     
-    // currentForcedDelta is our working delta value.
-    // (Starts positive.)
+    // currentForcedDelta is our working delta value (starting positive).
     var currentForcedDelta = baseForcedDelta;
     
     // Retrieve the "Last Trade" series from the plot.
@@ -82,13 +81,14 @@
           var lastY = recentPoints[recentPoints.length - 1][1];
           
           if (lastY > firstY) {
-            // The last 5 points show an upward movement.
+            // The last 5 points are going up.
             currentForcedDelta = Math.abs(baseForcedDelta);
-            console.log("Last 5 points going up. Forced delta set to positive:", currentForcedDelta);
+            console.log("Last 5 points are up. Forcing delta to positive:", currentForcedDelta);
           } else {
-            // The last 5 points are not going up (flat or down) — flip the forced delta.
+            // The last 5 points are not up (they're flat or going down).
+            // Flip the forced delta regardless of its current sign.
             currentForcedDelta = -currentForcedDelta;
-            console.log("Last 5 points not going up. Flipping forced delta to:", currentForcedDelta);
+            console.log("Last 5 points are not up. Flipping forced delta to:", currentForcedDelta);
           }
         }
         
@@ -116,9 +116,9 @@
       }
     }, updateInterval);
     
-    console.log("Forced takeover script activated. If the last 5 points are not rising, the forced delta will be switched.");
+    console.log("Forced takeover script activated. If the last 5 points are not going up, the forced delta is flipped.");
   }
   
-  // Start searching for the plot.
+  // Begin searching for the plot.
   waitForPlot();
 })();
