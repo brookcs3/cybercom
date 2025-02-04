@@ -27,12 +27,14 @@
   // FORCED TAKEOVER LOGIC
   function startForcedTakeover() {
     // --- CONFIGURATION PARAMETERS ---
-    var baseForcedDelta = 1.5;     // Base forced price change (in data units)
+    var baseForcedDelta = 0.5;     // Base forced price change (in data units)
     var updateInterval = 250;      // Interval (in ms) to check for new data.
     
-    // currentForcedDelta will be used to adjust the y–value of the artificial point.
-    // We expect it to normally be positive (forcing upward movement).
+    // currentForcedDelta is our working delta.
     var currentForcedDelta = baseForcedDelta;
+    // Store the last detected trend over a 5-point window.
+    // It can be "up", "down", or "flat".
+    var lastTrend = null;
     
     // Retrieve the "Last Trade" series from the plot.
     function getLastTradeSeries() {
@@ -66,7 +68,7 @@
       }
     };
     
-    // Set up an interval that every updateInterval ms checks if new real data has arrived.
+    // Set up an interval that every updateInterval ms checks for new real data.
     setInterval(function(){
       var series = getLastTradeSeries();
       if (!series) return;
@@ -75,17 +77,27 @@
       if (series.data.length === lastRealDataCount) {
         var lastPoint = series.data[series.data.length - 1];
         
-        // --- Check the last 5 data points ---
+        // --- Examine the trend over the last 5 data points ---
         if (series.data.length >= 5) {
-          // Get the last 5 points.
           var recentPoints = series.data.slice(-5);
-          // If the price is not rising over these 5 points (i.e. the last y is not greater than the first y),
-          // then force the forced delta to be positive.
-          if (recentPoints[recentPoints.length - 1][1] <= recentPoints[0][1]) {
-            // "Switch" the forced delta indiscriminately by setting it to the positive base value.
-            currentForcedDelta = Math.abs(baseForcedDelta);
-            console.log("Price is not rising over the last 5 points. Setting forced delta to", currentForcedDelta);
+          var firstY = recentPoints[0][1];
+          var lastY = recentPoints[recentPoints.length - 1][1];
+          var currentTrend;
+          if (lastY > firstY) {
+            currentTrend = "up";
+          } else if (lastY < firstY) {
+            currentTrend = "down";
+          } else {
+            currentTrend = "flat";
           }
+          
+          // If we have a previous trend and it differs from the current trend, flip the forced delta.
+          if (lastTrend !== null && currentTrend !== lastTrend) {
+            currentForcedDelta = -currentForcedDelta;
+            console.log("Trend changed from " + lastTrend + " to " + currentTrend + ". Flipping forced delta to " + currentForcedDelta);
+          }
+          // Update the lastTrend value.
+          lastTrend = currentTrend;
         }
         
         // Create a new artificial point.
@@ -112,7 +124,7 @@
       }
     }, updateInterval);
     
-    console.log("Forced takeover script activated. The 'Last Trade' series will now force upward movement if the last 5 data points do not show a rising price.");
+    console.log("Forced takeover script activated. The 'Last Trade' series will flip the forced delta anytime the trend changes.");
   }
   
   // Begin searching for the plot.
