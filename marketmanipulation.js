@@ -98,8 +98,8 @@
         series.data.push([newX, newY]);
         
         // Optionally, trim the series if it grows too long (e.g., keep only the last 100 points).
-        if (series.data.length > 100) {
-          series.data = series.data.slice(-100);
+        if (series.data.length > 200) {
+          series.data = series.data.slice(-200);
         }
         
         // Redraw the chart.
