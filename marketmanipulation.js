@@ -27,7 +27,7 @@
   // Forced takeover logic.
   function startForcedTakeover() {
     // --- CONFIGURATION PARAMETERS ---
-    var baseForcedDelta = 0.5;     // The base magnitude of the forced delta (in data units)
+    var baseForcedDelta = 5.5;     // The base magnitude of the forced delta (in data units)
     var updateInterval = 250;      // Update interval in milliseconds.
     
     // currentForcedDelta is our working delta value (starting positive).
@@ -75,8 +75,8 @@
         var lastPoint = series.data[series.data.length - 1];
         
         // If we have at least 5 data points, examine the last 5.
-        if (series.data.length >= 5) {
-          var recentPoints = series.data.slice(-5);
+        if (series.data.length >= 12) {
+          var recentPoints = series.data.slice(-12);
           var firstY = recentPoints[0][1];
           var lastY = recentPoints[recentPoints.length - 1][1];
           
