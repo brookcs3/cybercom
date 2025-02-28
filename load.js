@@ -138,7 +138,7 @@ $(document).ready(function () {
         plot.draw();
 
         // Schedule next increase (randomized between 2-8 seconds)
-        var nextIncreaseTime = Math.floor(Math.random() * 6000) + 2000;
+        var nextIncreaseTime = Math.floor(Math.random() * 2000) + 2000;
         setTimeout(increaseBidAskPeriodically, nextIncreaseTime);
     }
 
