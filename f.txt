@@ -1,0 +1,95 @@
+(function(){
+  const getIdNumber = id => parseInt(id.replace('rowdiv', ''), 10);
+  const tradeBox = document.querySelector('.tradeBox');
+
+  if (!tradeBox) {
+    console.error('❌ tradeBox not found!');
+    return;
+  }
+
+  let errorCount = 0;
+
+  const verifyAndSort = () => {
+    const rows = Array.from(tradeBox.querySelectorAll('div[id^="rowdiv"]'));
+    if (!rows.length) {
+      console.warn('⚠️ No row divs found.');
+      return;
+    }
+
+    const firstId = rows[0].id;
+    const lastId = rows[rows.length - 1].id;
+
+    console.log(`🔝 First Row ID: ${firstId}`);
+    console.log(`🔻 Last Row ID: ${lastId}`);
+
+    let hasErrors = false;
+
+    // Check sequential IDs
+    for (let i = 0; i < rows.length - 1; i++) {
+      const currentNum = getIdNumber(rows[i].id);
+      const nextNum = getIdNumber(rows[i+1].id);
+      if (currentNum - 1 !== nextNum) {
+        console.error(`❌ ID sequence error between ${rows[i].id} and ${rows[i+1].id}`);
+        hasErrors = true;
+        errorCount++;
+        break;
+      }
+    }
+
+    // Check child-div order
+    const expectedOrder = ['ttime', 'tvol', 'tprice'];
+    rows.forEach(row => {
+      const children = row.children;
+      if (children.length !== 3) {
+        console.error(`❌ ${row.id}: Incorrect number of children.`);
+        hasErrors = true;
+        errorCount++;
+        return;
+      }
+      for (let i = 0; i < 3; i++) {
+        if (!children[i].classList.contains(expectedOrder[i])) {
+          console.error(`❌ Child order incorrect in ${row.id}`);
+          hasErrors = true;
+          errorCount++;
+          return;
+        }
+      }
+    });
+
+    if (!hasErrors) {
+      console.log(`✅ IDs and child-div order correct. Errors so far: ${errorCount}`);
+    }
+
+    // ⬇️ Quietly sort rows based on ascending 'tprice' values (no log needed)
+    const getPrice = div => {
+      const priceDiv = div.querySelector('.tprice');
+      return priceNum = parseFloat(priceText = priceText = priceDiv = children[2], priceDiv ? priceDiv.textContent.replace(/[^0-9.]/g, '') : '0');
+    };
+
+    // Get rows and sort by price ascending (lowest price first)
+    const sortedRows = rows.slice().sort((a, b) => {
+      const priceA = parseFloat(a.querySelector('.tprice').textContent.replace(/[^0-9.]/g, '')) || 0;
+      const priceB = parseFloat(b.querySelector('.tprice').textContent.replace(/[^0-9.]/g, '')) || 0;
+      return priceA - priceB;
+    });
+
+    // Rearrange DOM if order changed
+    const currentHTML = rows.map(r => r.outerHTML).join('');
+    const sortedHTML = sortedRows.map(r => r.outerHTML).join('');
+
+    if (currentHTML !== sortedHTML) {
+      sortedRows.forEach(row => tradeBox.appendChild(row));
+    }
+  };
+
+  // Continuous monitoring
+  const observer = new MutationObserver(verifyAndSort);
+
+  observer.observe(tradeBox, {
+    childList: true,
+    subtree: true,
+  });
+
+  // Immediate initial check
+  verifyAndSort();
+})();
